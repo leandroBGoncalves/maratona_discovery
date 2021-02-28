@@ -12,38 +12,22 @@ const Modal = {
         .classList.remove('active') 
     }
 }
+const Storage = {
+    get() {
+        return JSON.parse(localStorage.getItem("dev.finances:transactions")) || []
+    },
+    set(transaction) {
+        localStorage.setItem("dev.finances:transactions", JSON.stringify(transactions))
+    }
+}
 
 const transactions = [
-    {
-    description: 'Luz',
-    amount: -49835,
-    date:'23/10/2021'
-    },
-
     
-    {
-    description: 'Criação de WebSite',
-    amount: 500000,
-    date:'04/10/2021'
-    },
-
-
-    {
-    description: 'Internet',
-    amount: -20789,
-    date:'20/10/2021'
-    },
-
-    {
-        description: 'App',
-        amount: 200000,
-        date:'25/10/2021'
-    },
 
 ]
 
 const transaction = {
-    all: transactions,
+    all: Storage.get(),
 
     add(transactions){
         transaction.all.push(transactions)
@@ -94,11 +78,12 @@ const DOM = {
     addtransactions(transactions, index) {
 
         const tr = document.createElement('tr')
-        tr.innerHTML = DOM.innerHTMLtransactions(transactions)
+        tr.innerHTML = DOM.innerHTMLtransactions(transactions, index)
+        tr.dataset.index = index
 
         DOM.transactionContainer.appendChild(tr)
     },   
-    innerHTMLtransactions(transactions) {
+    innerHTMLtransactions(transactions, index) {
         CSSclass = transactions.amount > 0 ? "income" : "expense"
 
         const amount = Utils.formatCurrency(transactions.amount)
@@ -107,7 +92,7 @@ const DOM = {
              <td class="description">${transactions.description}</td>
              <td class="${CSSclass}">${amount}</td>
              <td class="date">${transactions.date}</td>
-             <td><img src="./assets/minus.svg" alt="Icone Remover Itens"></td>
+             <td><img onclick="transaction.remove(${index})" src="./assets/minus.svg" alt="Icone Remover Itens"></td>
         `
         return html
     },
@@ -138,7 +123,7 @@ const Utils = {
 
     formatDate(date) {
         const splitteDate = date.split("-")
-        return 
+        return `${splitteDate[2]}/${splitteDate[1]}/${splitteDate[0]}`
     },
 
     formatCurrency(value) {
@@ -155,7 +140,7 @@ const Utils = {
         })
 
         return signal + value
-    }
+    },
 
 }
 
@@ -194,6 +179,19 @@ const form = {
         amount = Utils.formatAmount(amount)
 
         date = Utils.formatDate(date)
+
+        return {
+            description,
+            amount,
+            date 
+        }
+    },
+
+
+    clearFields() {
+        form.description.value = ""
+        form.amount.value = ""
+        form.date.value = ""
     },
 
     submit(event) {
@@ -202,9 +200,13 @@ const form = {
     try {
         form.validateField()
 
-        form.formatValues()
+        const transactions = form.formatValues()
 
+        transaction.add(transactions)
 
+        form.clearFields()
+
+        Modal.close()
 
         
     } catch (error) {
@@ -217,12 +219,13 @@ const form = {
 const App = {
     init() {
 
-        transaction.all.forEach(function(transactions){
-            DOM.addtransactions(transactions)
+        transaction.all.forEach(function(transactions, index){
+            DOM.addtransactions(transactions, index)
         })
         
         DOM.updateBalance()
 
+        Storage.set(transaction.all)
 
     },
     reload() {
